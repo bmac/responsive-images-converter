@@ -1,0 +1,23 @@
+{
+  "name": "responsive-images-converter",
+  "version": "1.0.0",
+  "description": "Resizes a source image and generates the `src`, `srcset` and `sizes` attribute values for the img tag.",
+  "main": "index.js",
+  "dependencies": {
+    "imagemagick": "^0.1.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bmac/responsive-images-converter.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bmac/responsive-images-converter/issues"
+  },
+  "homepage": "https://github.com/bmac/responsive-images-converter#readme"
+}
