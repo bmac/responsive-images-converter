@@ -11,35 +11,38 @@ const defaults = require('./lib/defaults');
 const identify = RSVP.denodeify(im.identify);
 const resize = RSVP.denodeify(im.resize);
 
-
-
 function ResponsiveImageConverter(config) {
   this.config = _.defaultsDeep({}, config, defaults);
 }
 
-ResponsiveImageConverter.prototype._identify = identify;
-ResponsiveImageConverter.prototype._resize = resize;
+ResponsiveImageConverter.prototype = {
+  constructor: ResponsiveImageConverter,
 
-ResponsiveImageConverter.prototype.generateSrcset = function(path, sizesConfig) {
-  
-  return this._identify(path).then(features => {
-    const max = features.width;
+  generateSrcset: function(path, sizesConfig) {
+    return this._identify(path)
+      .then(features => features.width)
+      .then(this._generateWidths.bind(this))
+      .then(this._resizeImageForWidths.bind(this, path))
+      .then(this._generateAttributesForImages.bind(this, path, sizesConfig))
+  },
+
+  _generateWidths: function(max) {
     const min = this.config.minWidth;
     const steps = this.config.steps;
 
     const range = max - min;
     const step = Math.floor(range / steps);
-    const sizes = Array.from({ length: steps }).map(function(value, index) {
+    return Array.from({ length: steps }).map(function(value, index) {
       return min + (index * step);
     });
+  },
 
-    return sizes;
-  }).then(sizes => {
-    return Promise.all(sizes.map(width => {
+  _resizeImageForWidths: function(path, widths)  {
+    return Promise.all(widths.map(width => {
       const pathParts = path.split('.');
       const pathStart = pathParts[0];
       const extension = pathParts[1];
-      
+
       return this._resize({
         srcPath: path,
         dstPath: `${pathStart}-${width}.${extension}`,
@@ -51,62 +54,37 @@ ResponsiveImageConverter.prototype.generateSrcset = function(path, sizesConfig) 
         }
       });
     }));
-  }).then(images => {
+  },
+
+  _generateAttributesForImages: function(path, sizesConfig, images)  {
     const srcset = images.reduce(function(memo, image) {
       return memo.concat(`${image.dstPath} ${image.width}w`);
     }, []);
 
     const breakpoints = this.config.breakpoints;
-    const sizes = Object.keys(sizesConfig).reduce(function(memo, key) {
-      if (key === 'default') {
-        return memo;
-      }
-      return memo.concat(
-        `${breakpoints[key]} ${sizesConfig[key]}`
-      );
-    }, []);
+    const sizes = Object.keys(sizesConfig)
+    // Default is always last
+            .filter(key => key !== 'default')
+            .reduce(
+              (memo, key) => memo.concat(`${breakpoints[key]} ${sizesConfig[key]}`),
+              []);
 
+    // Add the default size to the end of the array without a
+    // media query prefix.
     if (sizesConfig.default) {
       sizes.push(sizesConfig.default);
     }
-    
+
     const attributes = {
       src: path,
       sizes: sizes.join(', ') || '100vw',
       srcset: srcset.join(', ')
     };
     return attributes;
-  });
+  },
+
+  _identify: identify,
+  _resize: resize,
 };
 
-
 module.exports = ResponsiveImageConverter;
-
-// const converter = new ResponsiveImageConverter();
-//converter.generateSrcset('flavian-amphitheater.jpg').then(console.log.bind(console)).catch(console.error);
-
-// im.resize({
-//   srcPath: 'flavian-amphitheater.jpg',
-//   //dstPath: 'flavian-amphitheater-small.jpg',
-//   //quality: 0.8,
-//   //format: 'jpg',
-//   //progressive: false,
-//   width: 1400,
-//   //height: 0,
-//   //strip: true,
-//   //filter: 'Lagrange',
-//   //sharpening: 0.2,
-//   //customArgs: []
-// }, function(error, image) {
-//   console.log('Images', typeof image);
-//   im.identify(image, function(err, features){
-//     if (err) throw err;
-//     console.log('flavian-amphitheater-small.jpg', features.properties.signature);
-//   });
-// })
-
-
-// im.identify('flavian-amphitheater.jpg', function(err, features){
-//   if (err) throw err;
-//   console.log('flavian-amphitheater.jpg', features.properties.signature);
-// });
