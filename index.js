@@ -1,6 +1,5 @@
 const im = require('imagemagick');
 const RSVP = require('rsvp');
-const Promise = RSVP.Promise;
 const _ = require('lodash');
 
 const defaults = require('./lib/defaults');
@@ -21,12 +20,12 @@ ResponsiveImageConverter.prototype = {
   generateSrcset: function(path, sizesConfig) {
     return this._identify(path)
       .then(features => features.width)
-      .then(this._generateWidths.bind(this))
+      .then(this._targetWidthsForImages.bind(this))
       .then(this._resizeImageForWidths.bind(this, path))
-      .then(this._generateAttributesForImages.bind(this, path, sizesConfig))
+      .then(this._attributesForImages.bind(this, path, sizesConfig))
   },
 
-  _generateWidths: function(max) {
+  _targetWidthsForImages: function(max) {
     const min = this.config.minWidth;
     const steps = this.config.steps;
 
@@ -39,31 +38,52 @@ ResponsiveImageConverter.prototype = {
 
   _resizeImageForWidths: function(path, widths)  {
     return Promise.all(widths.map(width => {
-      const pathParts = path.split('.');
-      const pathStart = pathParts[0];
-      const extension = pathParts[1];
+      const dstPath = this._disPathName(path, width);
 
       return this._resize({
         srcPath: path,
-        dstPath: `${pathStart}-${width}.${extension}`,
+        dstPath: dstPath,
         width: width,
       }).then(function(){
         return {
-          dstPath: `${pathStart}-${width}.${extension}`,
+          dstPath: dstPath,
           width: width,
         }
       });
     }));
   },
 
-  _generateAttributesForImages: function(path, sizesConfig, images)  {
+  _disPathName: function(path, width) {
+    const pathParts = path.split('.');
+    const pathStart = pathParts[0];
+    const extension = pathParts[1];
+    return `${pathStart}-${width}.${extension}`;
+  },
+
+  _attributesForImages: function(path, sizesConfig, images)  {
+    const srcset = this._srcset(images);
+    const sizes = this._sizes(sizesConfig);
+
+    const attributes = {
+      src: path,
+      sizes: sizes,
+      srcset: srcset,
+    };
+    return attributes;
+  },
+
+  _srcset: function(images) {
     const srcset = images.reduce(function(memo, image) {
       return memo.concat(`${image.dstPath} ${image.width}w`);
     }, []);
 
+    return srcset.join(', ');
+  },
+
+  _sizes: function(sizesConfig) {
     const breakpoints = this.config.breakpoints;
     const sizes = Object.keys(sizesConfig)
-    // Default is always last
+            // default is always last
             .filter(key => key !== 'default')
             .reduce(
               (memo, key) => memo.concat(`${breakpoints[key]} ${sizesConfig[key]}`),
@@ -75,12 +95,7 @@ ResponsiveImageConverter.prototype = {
       sizes.push(sizesConfig.default);
     }
 
-    const attributes = {
-      src: path,
-      sizes: sizes.join(', ') || '100vw',
-      srcset: srcset.join(', ')
-    };
-    return attributes;
+    return sizes.join(', ') || '100vw';
   },
 
   _identify: identify,
