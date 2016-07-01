@@ -10,7 +10,7 @@ const config = {
 
 const responsiveImage = new ResponsiveImageConverter(config);
 
-responsiveImage.generateSrcset('./flavian-amphitheater.jpg', {
+responsiveImage.resizeImage('./flavian-amphitheater.jpg', {
   small: '100vw',
   medium: '50vw',
   large: '25vw',
@@ -18,8 +18,8 @@ responsiveImage.generateSrcset('./flavian-amphitheater.jpg', {
 }).then(function(attributes) {
 
   attributes === {
-    src: 'asdf-flavian-amphitheater.jpg',
-    srcset: 'asdf-flavian-amphitheater.jpg 1000w, ghjk-flavian-amphitheater.jpg 2000w',
+    src: 'flavian-amphitheater.jpg',
+    srcset: 'flavian-amphitheater-1000.jpg 1000w, flavian-amphitheater-2000.jpg 2000w',
     sizes: '(min-width: 768px) 100vw, (min-width: 992px) 50vw, (min-width: 1200px) 25vw, 90vw',
   }
 
