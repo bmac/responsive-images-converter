@@ -51,9 +51,8 @@ describe('ResponsiveImageConverter', function() {
 
     return subject.resizeImage('file-path.jpg', { small: '100vw', default: '50vw'})
       .then(attributes => {
-        assert.equal(attributes.sizes, '(min-width: 768px) 100vw, 50vw');
-
         assert.equal(attributes.src, 'file-path.jpg');
+        assert.equal(attributes.sizes, '(min-width: 768px) 100vw, 50vw');
         assert.equal(attributes.srcset, 'file-path-200.jpg 200w, file-path-340.jpg 340w, file-path-480.jpg 480w, file-path-620.jpg 620w, file-path-760.jpg 760w, file-path-900.jpg 900w, file-path-1040.jpg 1040w, file-path-1180.jpg 1180w, file-path-1320.jpg 1320w, file-path-1460.jpg 1460w');
       });
   });
